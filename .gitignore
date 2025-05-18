@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+price_tracker.db
+*.sqlite3
+tempCodeRunnerFile.py
