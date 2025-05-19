@@ -116,25 +116,25 @@ def run_bot():
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("yardim", yardim))
+    app.add_handler(CommandHandler("yardım", yardım))
     app.add_handler(CommandHandler("ekle", ekle))
     app.add_handler(CommandHandler("fiyatlar", fiyatlar))
     app.add_handler(CommandHandler("grafik", grafik))
 
     print("🚀 Telegram komut sistemi başlatıldı.")
 
-    async def set_commands():
+    async def startup():
         await app.bot.set_my_commands([
             BotCommand("start", "Botu başlat"),
-            BotCommand("yardim", "Komut listesini göster"),
+            BotCommand("yardım", "Komut listesini göster"),
             BotCommand("ekle", "Ürün ekle"),
             BotCommand("fiyatlar", "Ürünleri listele"),
-            BotCommand("grafik", "Fiyat grafiği göster")
+            BotCommand("grafik", "Fiyat grafiği gönder")
         ])
+        await app.run_polling()
 
     import asyncio
-    asyncio.run(set_commands())
-    app.run_polling()
+    asyncio.run(startup())
 
 # ─────── Flask (sahte port açıcı) ───────
 
