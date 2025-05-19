@@ -1,16 +1,10 @@
-
-
+# ─────── Telegram Bot Komutları ───────
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import asyncio
-import threading
 from flask import Flask
-from io import BytesIO
-import matplotlib.pyplot as plt
-from datetime import datetime
-
 from telegram import Update, BotCommand
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
@@ -24,36 +18,32 @@ from db.database import (
     get_price_history,
 )
 
-# Flask sahte port açıcı
+# === Flask Uygulaması ===
 flask_app = Flask(__name__)
 
-@flask_app.route('/')
+@flask_app.route("/")
 def index():
-    return "Bot çalışıyor."
+    return "Bot aktif 👋"
 
-def run_flask():
-    flask_app.run(host="0.0.0.0", port=10000)
-
-# Telegram bot token
+# === Telegram Bot Token ===
 TOKEN = "7989116004:AAFFiYWlQHPOoihaD8PpVBKi_98Buu-utwI"  
 
-# Komutlar
+# === Komut Fonksiyonları ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("👋 Merhaba! Trendyol ürünlerini takip etmek için /yardim yaz.")
+    await update.message.reply_text("👋 Merhaba! /yardim yazarak komutları görebilirsin.")
 
 async def yardim(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    msg = (
-        "📋 *Komutlar:*\n"
-        "/ekle <url> - Yeni ürün ekle\n"
-        "/fiyatlar - Tüm ürünleri listele\n"
-        "/grafik <id> - Fiyat grafiğini gönderir\n"
-        "/yardim - Yardım menüsü"
+    await update.message.reply_text(
+        "/start - Botu başlat\n"
+        "/yardim - Komutları göster\n"
+        "/ekle <url> - Ürün ekle\n"
+        "/fiyatlar - Ürünleri listele\n"
+        "/grafik <id> - Fiyat grafiği gönder"
     )
-    await update.message.reply_markdown(msg)
 
 async def ekle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
-        await update.message.reply_text("⚠️ Lütfen bir Trendyol linki gir: `/ekle <url>`", parse_mode="Markdown")
+        await update.message.reply_text("⚠️ Lütfen bir Trendyol ürün linki gir: /ekle <url>")
         return
 
     url = context.args[0]
@@ -65,8 +55,7 @@ async def ekle(update: Update, context: ContextTypes.DEFAULT_TYPE):
         insert_price(product_id, price)
 
         await update.message.reply_text(
-            f"✅ Ürün eklendi: *{title}*\n💸 İlk Fiyat: `{price}`\n(ID: {product_id})",
-            parse_mode="Markdown"
+            f"✅ Ürün eklendi:\n🛒 {title}\n💸 {price}\n🆔 ID: {product_id}"
         )
     except Exception as e:
         await update.message.reply_text(f"❌ Ürün eklenemedi: {str(e)}")
@@ -77,79 +66,39 @@ async def fiyatlar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Henüz hiç ürün yok.")
         return
 
-    msg = "📦 *Takip Edilen Ürünler:*\n"
+    msg = ""
     for prod in products:
-        last_price = get_last_price_entry(prod[0]) or "?"
-        msg += f"🔹 ID: `{prod[0]}`\n📄 {prod[1]}\n💸 Fiyat: `{last_price}`\n\n"
+        price = get_last_price_entry(prod[0]) or "?"
+        msg += f"🆔 {prod[0]}\n📄 {prod[1]}\n💸 {price}\n\n"
 
-    await update.message.reply_markdown(msg)
+    await update.message.reply_text(msg.strip())
 
-async def grafik(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.args:
-        await update.message.reply_text("⚠️ Kullanım: `/grafik <id>`", parse_mode="Markdown")
-        return
+# === Botu Asenkron Olarak Başlat ===
+async def run_bot():
+    print("⚙️ Telegram bot başlatılıyor...")
+    init_db()
 
-    try:
-        product_id = int(context.args[0])
-        history = get_price_history(product_id)
+    app = ApplicationBuilder().token(TOKEN).build()
 
-        if not history or len(history) < 2:
-            await update.message.reply_text("⚠️ Bu ürün için yeterli fiyat verisi yok.")
-            return
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("yardim", yardim))
+    app.add_handler(CommandHandler("ekle", ekle))
+    app.add_handler(CommandHandler("fiyatlar", fiyatlar))
 
-        dates = [datetime.strptime(row[0], "%Y-%m-%d %H:%M:%S") for row in history]
-        prices = [int(row[1].replace(" TL", "").replace("₺", "").replace(".", "").replace(",", "")) for row in history]
+    await app.bot.set_my_commands([
+        BotCommand("start", "Botu başlat"),
+        BotCommand("yardim", "Komutları göster"),
+        BotCommand("ekle", "Ürün ekle"),
+        BotCommand("fiyatlar", "Ürünleri listele")
+    ])
 
-        plt.figure(figsize=(8, 5))
-        plt.plot(dates, prices, marker='o', linewidth=2)
-        plt.title(f"Ürün #{product_id} Fiyat Geçmişi")
-        plt.xlabel("Tarih")
-        plt.ylabel("Fiyat (₺)")
-        plt.xticks(rotation=45)
-        plt.grid(True)
-        plt.tight_layout()
+    await app.initialize()
+    await app.start()
+    print("✅ Telegram bot çalışıyor.")
+    await asyncio.Event().wait()  # sonsuza kadar çalış
 
-        buf = BytesIO()
-        plt.savefig(buf, format="png")
-        buf.seek(0)
-        plt.close()
-
-        await update.message.reply_photo(photo=buf)
-
-    except ValueError:
-        await update.message.reply_text("❌ Geçersiz ID girdin.")
-    except Exception as e:
-        await update.message.reply_text(f"❌ Grafik oluşturulamadı: {str(e)}")
-
-# Telegram bot thread'inde çalışacak
-def run_bot():
-    async def main():
-        print("⚙️ main() başladı")
-        init_db()
-        app = ApplicationBuilder().token(TOKEN).build()
-
-        app.add_handler(CommandHandler("start", start))
-        app.add_handler(CommandHandler("yardim", yardim))
-        app.add_handler(CommandHandler("ekle", ekle))
-        app.add_handler(CommandHandler("fiyatlar", fiyatlar))
-        app.add_handler(CommandHandler("grafik", grafik))
-
-        print("🚀 Telegram komut sistemi başlatıldı.")
-
-        await app.bot.set_my_commands([
-            BotCommand("start", "Botu başlat"),
-            BotCommand("yardim", "Komut listesini göster"),
-            BotCommand("ekle", "Ürün ekle"),
-            BotCommand("fiyatlar", "Ürünleri listele"),
-            BotCommand("grafik", "Fiyat grafiği gönder")
-        ])
-
-        await app.initialize()
-        await app.start()
-        print("✅ Bot başlatıldı.")
-        await asyncio.Event().wait()
-
-    try:
-        asyncio.run(main())
-    except Exception as e:
-        print(f"[run_bot HATASI]: {e}")
+# === Ana Giriş Noktası ===
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    loop.create_task(run_bot())
+    flask_app.run(host="0.0.0.0", port=10000)
