@@ -48,9 +48,11 @@ async def yardim(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def run_bot():
     print("⚙️ Telegram bot başlatılıyor...")
+    print(f"🎯 Token → {TOKEN}")
     init_db()
 
     app = ApplicationBuilder().token(TOKEN).build()
+
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("yardim", yardim))
 
@@ -60,15 +62,12 @@ async def run_bot():
     ])
 
     await app.initialize()
-    await app.start()
-    print("✅ Telegram bot çalışıyor.")
-    await asyncio.Event().wait()
-
-# === Ana giriş ===
-if __name__ == "__main__":
-    Thread(target=run_flask).start()
+    print("🔧 initialize tamamlandı.")
 
     try:
-        asyncio.run(run_bot())
+        await app.start()
+        print("✅ Telegram bot çalışıyor.")
     except Exception as e:
-        print(f"[HATA]: {e}")
+        print(f"[❌ start() HATASI]: {e}")
+
+    await asyncio.Event().wait()
