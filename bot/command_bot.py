@@ -1,4 +1,7 @@
 # ─────── Telegram Bot Komutları ───────
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from telegram import Update, BotCommand
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from scraper.trendyol import get_trendyol_data
@@ -19,7 +22,7 @@ import threading
 from flask import Flask
 
 # Telegram bot token
-TOKEN = "7989116004:AAFFiYWlQHPOoihaD8PpVBKi_98Buu-utwI"
+TOKEN = "7989116004:AAFFiYWlQHPOoihaD8PpVBKi_98Buu-utwI"  
 
 # ─────── Komutlar ───────
 
