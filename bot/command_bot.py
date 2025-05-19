@@ -1,48 +1,77 @@
-from telegram import Update
+# ─────── Telegram Bot Komutları ───────
+from telegram import Update, BotCommand
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from scraper.trendyol import get_trendyol_data
-from db.database import add_product, init_db, get_last_price_entry, insert_price
-
-from db.database import get_all_products, get_price_history
+from db.database import (
+    add_product,
+    init_db,
+    insert_price,
+    get_all_products,
+    get_last_price_entry,
+    get_price_history,
+)
 from io import BytesIO
 import matplotlib.pyplot as plt
 from datetime import datetime
 
+# Flask kısmı → sahte port için
+import threading
+from flask import Flask
+
+# Telegram bot token
 TOKEN = "7989116004:AAFFiYWlQHPOoihaD8PpVBKi_98Buu-utwI"
 
-# Komut: /start
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("👋 Merhaba! Bu bot ile Trendyol ürünlerini takip edebilirsin.\nYardım için /yardim yaz.")
+# ─────── Komutlar ───────
 
-# Komut: /yardım
-async def yardim(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = (
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("👋 Merhaba! Trendyol ürünlerini takip etmek için /yardım yaz.")
+
+async def yardım(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    msg = (
         "📋 *Komutlar:*\n"
-        "/ekle <link> - Yeni ürün ekle ve fiyatını takip etmeye başla\n"
-        "/fiyatlar - Takip edilen ürünleri listele (yakında)\n"
-        "/grafik <id> - Ürün fiyat geçmişi grafiği gönderir (yakında)\n"
-        "/yardım - Bu listeyi gösterir"
+        "/ekle <url> - Yeni ürün ekle\n"
+        "/fiyatlar - Tüm ürünleri listele\n"
+        "/grafik <id> - Fiyat grafiğini gönderir\n"
+        "/yardım - Yardım menüsü"
     )
-    await update.message.reply_markdown(text)
+    await update.message.reply_markdown(msg)
+
+async def ekle(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.message.reply_text("⚠️ Lütfen bir Trendyol linki gir: `/ekle <url>`", parse_mode="Markdown")
+        return
+
+    url = context.args[0]
+    try:
+        data = get_trendyol_data(url)
+        title = data["title"]
+        price = data["price"]
+        product_id = add_product(title, url)
+        insert_price(product_id, price)
+
+        await update.message.reply_text(
+            f"✅ Ürün eklendi: *{title}*\n💸 İlk Fiyat: `{price}`\n(ID: {product_id})",
+            parse_mode="Markdown"
+        )
+    except Exception as e:
+        await update.message.reply_text(f"❌ Ürün eklenemedi: {str(e)}")
 
 async def fiyatlar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     products = get_all_products()
     if not products:
-        await update.message.reply_text("⚠️ Henüz hiç ürün eklenmemiş.")
+        await update.message.reply_text("Henüz hiç ürün yok.")
         return
 
     msg = "📦 *Takip Edilen Ürünler:*\n"
     for prod in products:
         last_price = get_last_price_entry(prod[0]) or "?"
         msg += f"🔹 ID: `{prod[0]}`\n📄 {prod[1]}\n💸 Fiyat: `{last_price}`\n\n"
+
     await update.message.reply_markdown(msg)
 
 async def grafik(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
-        await update.message.reply_text("⚠️ Lütfen bir ürün ID gir: `/grafik <id>`", parse_mode="Markdown")
+        await update.message.reply_text("⚠️ Kullanım: `/grafik <id>`", parse_mode="Markdown")
         return
 
     try:
@@ -50,10 +79,9 @@ async def grafik(update: Update, context: ContextTypes.DEFAULT_TYPE):
         history = get_price_history(product_id)
 
         if not history or len(history) < 2:
-            await update.message.reply_text("⚠️ Bu ürün için yeterli fiyat geçmişi yok.")
+            await update.message.reply_text("⚠️ Bu ürün için yeterli fiyat verisi yok.")
             return
 
-        # Grafik çizimi
         dates = [datetime.strptime(row[0], "%Y-%m-%d %H:%M:%S") for row in history]
         prices = [int(row[1].replace(" TL", "").replace("₺", "").replace(".", "").replace(",", "")) for row in history]
 
@@ -63,7 +91,7 @@ async def grafik(update: Update, context: ContextTypes.DEFAULT_TYPE):
         plt.xlabel("Tarih")
         plt.ylabel("Fiyat (₺)")
         plt.xticks(rotation=45)
-        plt.grid(True, linestyle='--', alpha=0.5)
+        plt.grid(True)
         plt.tight_layout()
 
         buf = BytesIO()
@@ -74,46 +102,50 @@ async def grafik(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_photo(photo=buf)
 
     except ValueError:
-        await update.message.reply_text("❌ Geçersiz ID. Sayı girmen gerekiyor.")
+        await update.message.reply_text("❌ Geçersiz ID girdin.")
     except Exception as e:
         await update.message.reply_text(f"❌ Grafik oluşturulamadı: {str(e)}")
 
+# ─────── Uygulama Başlatıcı ───────
 
-# Komut: /ekle <trendyol-url>
-async def ekle(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.args:
-        await update.message.reply_text("⚠️ Lütfen bir Trendyol ürün linki gir: `/ekle <link>`", parse_mode="Markdown")
-        return
-
-    url = context.args[0]
-    try:
-        data = get_trendyol_data(url)
-        title = data["title"]
-        price = data["price"]
-        product_id = add_product(title, url)
-
-        insert_price(product_id, price)  # ⬅️ ilk fiyatı kaydet
-
-        await update.message.reply_text(
-            f"✅ Ürün eklendi: *{title}*\n💸 İlk Fiyat: `{price}`\n(ID: {product_id})",
-            parse_mode="Markdown"
-        )
-    except Exception as e:
-        await update.message.reply_text(f"❌ Ürün eklenemedi: {str(e)}")
-
-# Ana uygulama
-def main():
+def run_bot():
     init_db()
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("yardim", yardim))
+    app.add_handler(CommandHandler("yardım", yardım))
     app.add_handler(CommandHandler("ekle", ekle))
     app.add_handler(CommandHandler("fiyatlar", fiyatlar))
     app.add_handler(CommandHandler("grafik", grafik))
 
     print("🚀 Telegram komut sistemi başlatıldı.")
+
+    async def set_commands():
+        await app.bot.set_my_commands([
+            BotCommand("start", "Botu başlat"),
+            BotCommand("yardım", "Komut listesini göster"),
+            BotCommand("ekle", "Ürün ekle"),
+            BotCommand("fiyatlar", "Ürünleri listele"),
+            BotCommand("grafik", "Fiyat grafiği göster")
+        ])
+
+    import asyncio
+    asyncio.run(set_commands())
     app.run_polling()
 
+# ─────── Flask (sahte port açıcı) ───────
+
+flask_app = Flask(__name__)
+
+@flask_app.route('/')
+def index():
+    return "Bot çalışıyor."
+
+def run_flask():
+    flask_app.run(host="0.0.0.0", port=10000)
+
+# ─────── Ana Giriş ───────
+
 if __name__ == "__main__":
-    main()
+    threading.Thread(target=run_flask).start()
+    run_bot()
