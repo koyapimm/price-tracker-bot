@@ -64,11 +64,12 @@ async def run():
     await app.initialize()
     print("🔧 initialize tamamlandı.")
 
+    print("🚀 start_polling çağrılıyor...")
     await app.start()
+    await app.updater.start_polling()
     print("✅ Telegram bot çalışıyor.")
 
-    await app.updater.start_polling()
-    await app.updater.idle()
+    await asyncio.Event().wait()
 
 if __name__ == "__main__":
     import asyncio
