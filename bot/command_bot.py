@@ -1,53 +1,33 @@
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-from dotenv import load_dotenv
-load_dotenv()
-
-import os
-import asyncio
-from flask import Flask
-from threading import Thread
 from telegram import Update, BotCommand
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+import os
 from db.database import init_db, add_product, get_all_products
-import traceback
-# === Flask app ===
-flask_app = Flask(__name__)
 
-@flask_app.route("/")
-def index():
-    return "✅ Bot aktif. Render port görüyor."
-
-def run_flask():
-    port = int(os.environ.get("PORT", 10000))  # Render için gerekli
-    flask_app.run(host="0.0.0.0", port=port)
-
-# === Telegram Bot ===
-TOKEN = os.getenv("TOKEN")
+TOKEN = os.environ.get("TOKEN")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("👋 Hoş geldin! Komutlar için /yardim yaz.")
+    await update.message.reply_text("👋 Hoş geldin! Komutlar için /yardim yazabilirsin.")
 
 async def yardim(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "/start - Başlat\n"
-        "/yardim - Yardım menüsü\n"
-        "/ekle <url> - Ürün ekle\n"
-        "/fiyatlar - Listele\n"
-        "/grafik <id> - Grafik göster"
+        "/start - Botu başlatır
+"
+        "/yardim - Yardım menüsü
+"
+        "/ekle <url> - Ürün ekler
+"
+        "/fiyatlar - Eklenen ürünleri listeler"
     )
 
 async def ekle(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) == 0:
-        await update.message.reply_text("❗️ Lütfen bir URL gir.")
+        await update.message.reply_text("Lütfen bir ürün URL'si gir.")
         return
 
     url = context.args[0]
-    title = f"Ürün Başlığı"  # Dummy
+    title = "Ürün Başlığı"  # Dummy
     product_id = add_product(title, url)
-    await update.message.reply_text(f"✅ Ürün eklendi! ID: {product_id}")
+    await update.message.reply_text(f"✅ Ürün eklendi. ID: {product_id}")
 
 async def fiyatlar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     products = get_all_products()
@@ -55,69 +35,41 @@ async def fiyatlar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Henüz ürün eklenmemiş.")
         return
 
-    msg = "\n".join([f"{p[0]} - {p[1]}" for p in products])
-    await update.message.reply_text(f"📦 Ürünler:\n{msg}")
+    text = "
+".join([f"{p[0]} - {p[1]}" for p in products])
+    await update.message.reply_text(text)
 
-async def grafik(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🧪 Grafik özelliği henüz eklenmedi.")
+async def run():
+    print("🔥 Başlatılıyor...")
+    print("⚙️ run_bot fonksiyonu başlatıldı.")
+    print(f"🔑 TOKEN (ilk 10 karakter): {TOKEN[:10] if TOKEN else 'YOK'}")
 
-async def run_bot():
-    try:
-        print("⚙️ run_bot fonksiyonu başlatıldı.")
-        print(f"🔑 TOKEN (ilk 10 karakter): {TOKEN[:10] if TOKEN else 'YOK'}")
+    if not TOKEN:
+        print("❌ [HATA] TOKEN environment değişkeni alınamadı!")
+        return
 
-        if not TOKEN:
-            print("❌ [HATA] TOKEN environment değişkeni alınamadı!")
-            return
+    init_db()
+    print("📦 DB başlatıldı.")
 
-        init_db()
-        print("📦 DB başlatıldı.")
+    app = ApplicationBuilder().token(TOKEN).build()
+    print("✅ ApplicationBuilder tamam.")
 
-        print("🔨 ApplicationBuilder başlatılıyor...")
-        app = ApplicationBuilder().token(TOKEN).build()
-        print("✅ ApplicationBuilder tamam.")
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("yardim", yardim))
+    app.add_handler(CommandHandler("ekle", ekle))
+    app.add_handler(CommandHandler("fiyatlar", fiyatlar))
 
-        app.add_handler(CommandHandler("start", start))
-        app.add_handler(CommandHandler("yardim", yardim))
-        app.add_handler(CommandHandler("ekle", ekle))
-        app.add_handler(CommandHandler("fiyatlar", fiyatlar))
-        app.add_handler(CommandHandler("grafik", grafik))
+    print("🔧 Komutlar eklendi.")
 
-        print("🔧 Komutlar eklendi.")
+    await app.initialize()
+    print("🔧 initialize tamamlandı.")
 
-        await app.bot.set_my_commands([
-            BotCommand("start", "Botu başlat"),
-            BotCommand("yardim", "Yardım menüsü"),
-            BotCommand("ekle", "Ürün ekle"),
-            BotCommand("fiyatlar", "Fiyatları listele"),
-            BotCommand("grafik", "Fiyat grafiği"),
-        ])
-        print("📜 Komut listesi Telegram’a gönderildi.")
+    await app.start()
+    print("✅ Telegram bot çalışıyor.")
 
-        print("🚧 initialize çağrılıyor...")
-        await app.initialize()
-        print("🔧 initialize tamamlandı.")
-
-        print("🚀 start çağrılıyor...")
-        await app.start()
-        print("✅ Telegram bot çalışıyor.")
-
-        await asyncio.Event().wait()
-
-    except Exception as e:
-        print("🚨 Bir hata oluştu:")
-        traceback.print_exc()
-        print(f"⛔️ {e}")
-
+    await app.updater.start_polling()
+    await app.updater.idle()
 
 if __name__ == "__main__":
-    print("🔥 Başlatılıyor...")
-    Thread(target=run_flask).start()
-
-    try:
-        asyncio.run(run_bot())
-    except Exception as e:
-        import traceback
-        print("❌ Bot başlatılamadı!")
-        traceback.print_exc()
-        print(f"[EXCEPTION]: {e}")
+    import asyncio
+    asyncio.run(run())
