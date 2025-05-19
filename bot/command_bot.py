@@ -1,10 +1,11 @@
-# ─────── Telegram Bot Komutları ───────
-import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
+import sys
 import asyncio
 from flask import Flask
+from threading import Thread
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from telegram import Update, BotCommand
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
@@ -18,64 +19,62 @@ from db.database import (
     get_price_history,
 )
 
-from threading import Thread
-
-# === Flask Uygulaması ===
+# === Flask server (Render için port açma)
 flask_app = Flask(__name__)
 
 @flask_app.route("/")
 def index():
-    return "Bot aktif 👋"
+    return "✅ Bot aktif. Render port görüyor."
 
 def run_flask():
     flask_app.run(host="0.0.0.0", port=10000)
 
-# === Telegram Bot Token ===
-TOKEN = "7989116004:AAFFiYWlQHPOoihaD8PpVBKi_98Buu-utwI"  
+# === Telegram Bot ===
+TOKEN = os.getenv("TOKEN")  # Environment variable olarak ayarlanmalı!
 
-# === Komutlar ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("👋 Merhaba! /yardim yazarak komutları görebilirsin.")
+    await update.message.reply_text("👋 Hoş geldin! /yardim komutunu kullanabilirsin.")
 
 async def yardim(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "/start - Botu başlat\n"
-        "/yardim - Komutları göster\n"
+        "/start - Başlat\n"
+        "/yardim - Yardım menüsü\n"
         "/ekle <url> - Ürün ekle\n"
-        "/fiyatlar - Ürünleri listele\n"
-        "/grafik <id> - Fiyat grafiği gönder"
+        "/fiyatlar - Listele\n"
+        "/grafik <id> - Fiyat grafiği"
     )
 
 async def run_bot():
     print("⚙️ Telegram bot başlatılıyor...")
     init_db()
 
-    app = ApplicationBuilder().token(TOKEN).build()
+    if not TOKEN:
+        print("❌ TOKEN bulunamadı. Çevresel değişkene ekledin mi?")
+        return
 
+    app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("yardim", yardim))
 
     await app.bot.set_my_commands([
         BotCommand("start", "Botu başlat"),
-        BotCommand("yardim", "Komutları göster"),
+        BotCommand("yardim", "Yardım menüsü"),
     ])
 
     await app.initialize()
     print("🔧 initialize tamamlandı.")
 
-    try:
-        await app.start()
-        print("✅ Telegram bot çalışıyor.")
-    except Exception as e:
-        print(f"[❌ start() HATASI]: {e}")
-
+    await app.start()
+    print("✅ Telegram bot çalışıyor.")
     await asyncio.Event().wait()
 
-# === Ana giriş ===
+# === Giriş Noktası ===
 if __name__ == "__main__":
+    # Flask'ı ayrı thread'de başlat
     Thread(target=run_flask).start()
 
+    # Telegram botu çalıştır
     try:
         asyncio.run(run_bot())
     except Exception as e:
-        print(f"[HATA]: {e}")
+        print(f"[BOT HATASI]: {e}")
