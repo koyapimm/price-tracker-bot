@@ -12,7 +12,7 @@ from threading import Thread
 from telegram import Update, BotCommand
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from db.database import init_db, add_product, get_all_products
-
+import traceback
 # === Flask app ===
 flask_app = Flask(__name__)
 
@@ -62,22 +62,28 @@ async def grafik(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🧪 Grafik özelliği henüz eklenmedi.")
 
 async def run_bot():
-    print("⚙️ run_bot fonksiyonu başlatıldı.")
-    print(f"🔑 TOKEN (ilk 10 karakter): {TOKEN[:10] if TOKEN else 'YOK'}")
-
-    if not TOKEN:
-        print("❌ [HATA] TOKEN environment değişkeni alınamadı!")
-        return
-
-    init_db()
-
     try:
+        print("⚙️ run_bot fonksiyonu başlatıldı.")
+        print(f"🔑 TOKEN (ilk 10 karakter): {TOKEN[:10] if TOKEN else 'YOK'}")
+
+        if not TOKEN:
+            print("❌ [HATA] TOKEN environment değişkeni alınamadı!")
+            return
+
+        init_db()
+        print("📦 DB başlatıldı.")
+
+        print("🔨 ApplicationBuilder başlatılıyor...")
         app = ApplicationBuilder().token(TOKEN).build()
+        print("✅ ApplicationBuilder tamam.")
+
         app.add_handler(CommandHandler("start", start))
         app.add_handler(CommandHandler("yardim", yardim))
         app.add_handler(CommandHandler("ekle", ekle))
         app.add_handler(CommandHandler("fiyatlar", fiyatlar))
         app.add_handler(CommandHandler("grafik", grafik))
+
+        print("🔧 Komutlar eklendi.")
 
         await app.bot.set_my_commands([
             BotCommand("start", "Botu başlat"),
@@ -86,6 +92,7 @@ async def run_bot():
             BotCommand("fiyatlar", "Fiyatları listele"),
             BotCommand("grafik", "Fiyat grafiği"),
         ])
+        print("📜 Komut listesi Telegram’a gönderildi.")
 
         print("🚧 initialize çağrılıyor...")
         await app.initialize()
@@ -98,8 +105,7 @@ async def run_bot():
         await asyncio.Event().wait()
 
     except Exception as e:
-        import traceback
-        print("🚨 [BOT HATASI]:")
+        print("🚨 Bir hata oluştu:")
         traceback.print_exc()
         print(f"⛔️ {e}")
 
