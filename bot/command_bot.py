@@ -70,6 +70,7 @@ async def run_bot():
         return
 
     init_db()
+
     try:
         app = ApplicationBuilder().token(TOKEN).build()
         app.add_handler(CommandHandler("start", start))
@@ -86,15 +87,21 @@ async def run_bot():
             BotCommand("grafik", "Fiyat grafiği"),
         ])
 
+        print("🚧 initialize çağrılıyor...")
         await app.initialize()
         print("🔧 initialize tamamlandı.")
 
+        print("🚀 start çağrılıyor...")
         await app.start()
         print("✅ Telegram bot çalışıyor.")
+
         await asyncio.Event().wait()
 
     except Exception as e:
-        print(f"🚨 [BOT HATASI]: {e}")
+        import traceback
+        print("🚨 [BOT HATASI]:")
+        traceback.print_exc()
+        print(f"⛔️ {e}")
 
 
 if __name__ == "__main__":
