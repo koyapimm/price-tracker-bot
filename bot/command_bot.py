@@ -1,4 +1,8 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 import os
+TOKEN = os.getenv("TOKEN")
 import sys
 import asyncio
 from flask import Flask
