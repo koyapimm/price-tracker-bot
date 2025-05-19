@@ -49,8 +49,9 @@ async def run_bot():
     init_db()
 
     if not TOKEN:
-        print("❌ TOKEN bulunamadı. Çevresel değişkene ekledin mi?")
-        return
+        print("❌ TOKEN çevre değişkeni olarak alınamadı.")
+    else:
+        print(f"🎯 TOKEN yüklendi: {TOKEN[:8]}... (gizlendi)")
 
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
