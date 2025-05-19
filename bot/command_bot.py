@@ -10,12 +10,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def yardim(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "/start - Botu başlatır
-"
-        "/yardim - Yardım menüsü
-"
-        "/ekle <url> - Ürün ekler
-"
+        "/start - Botu başlatır"
+        "/yardim - Yardım menüsü"
+        "/ekle <url> - Ürün ekler"
         "/fiyatlar - Eklenen ürünleri listeler"
     )
 
@@ -35,8 +32,7 @@ async def fiyatlar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Henüz ürün eklenmemiş.")
         return
 
-    text = "
-".join([f"{p[0]} - {p[1]}" for p in products])
+    text = "".join([f"{p[0]} - {p[1]}" for p in products])
     await update.message.reply_text(text)
 
 async def run():
