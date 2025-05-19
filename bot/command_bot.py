@@ -134,7 +134,9 @@ def run_bot():
         await app.run_polling()
 
     import asyncio
-    asyncio.run(startup())
+    loop = asyncio.get_event_loop()
+    loop.create_task(startup())
+
 
 # ─────── Flask (sahte port açıcı) ───────
 
