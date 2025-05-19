@@ -2,5 +2,5 @@ requests
 beautifulsoup4
 schedule
 matplotlib
-python-telegram-bot==20.6
 flask
+python-telegram-bot==20.6
