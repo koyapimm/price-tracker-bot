@@ -62,32 +62,39 @@ async def grafik(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🧪 Grafik özelliği henüz eklenmedi.")
 
 async def run_bot():
-    print(f"📦 Yüklenen token: {TOKEN}")
-    if not TOKEN:
-        print("❌ [HATA] TOKEN environment değişkeni alınamadı!")
-        return
     print("⚙️ Bot başlatılıyor...")
     init_db()
 
-    app = ApplicationBuilder().token(TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("yardim", yardim))
-    app.add_handler(CommandHandler("ekle", ekle))
-    app.add_handler(CommandHandler("fiyatlar", fiyatlar))
-    app.add_handler(CommandHandler("grafik", grafik))
+    if not TOKEN:
+        print("❌ [HATA] TOKEN environment değişkeni alınamadı!")
+        return
 
-    await app.bot.set_my_commands([
-        BotCommand("start", "Botu başlat"),
-        BotCommand("yardim", "Yardım menüsü"),
-        BotCommand("ekle", "Ürün ekle"),
-        BotCommand("fiyatlar", "Fiyatları listele"),
-        BotCommand("grafik", "Fiyat grafiği"),
-    ])
+    try:
+        app = ApplicationBuilder().token(TOKEN).build()
+        app.add_handler(CommandHandler("start", start))
+        app.add_handler(CommandHandler("yardim", yardim))
+        app.add_handler(CommandHandler("ekle", ekle))
+        app.add_handler(CommandHandler("fiyatlar", fiyatlar))
+        app.add_handler(CommandHandler("grafik", grafik))
 
-    await app.initialize()
-    await app.start()
-    print("✅ Telegram bot çalışıyor.")
-    await asyncio.Event().wait()
+        await app.bot.set_my_commands([
+            BotCommand("start", "Botu başlat"),
+            BotCommand("yardim", "Yardım menüsü"),
+            BotCommand("ekle", "Ürün ekle"),
+            BotCommand("fiyatlar", "Fiyatları listele"),
+            BotCommand("grafik", "Fiyat grafiği"),
+        ])
+
+        await app.initialize()
+        print("🔧 initialize tamamlandı.")
+
+        await app.start()
+        print("✅ Telegram bot çalışıyor.")
+        await asyncio.Event().wait()
+
+    except Exception as e:
+        print(f"🚨 [BOT HATASI]: {e}")
+
 
 if __name__ == "__main__":
     print("🔥 Başlatılıyor...")
