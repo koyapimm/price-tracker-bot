@@ -2,29 +2,39 @@
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import asyncio
+import threading
+from flask import Flask
+from io import BytesIO
+import matplotlib.pyplot as plt
+from datetime import datetime
+
 from telegram import Update, BotCommand
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+
 from scraper.trendyol import get_trendyol_data
 from db.database import (
-    add_product,
     init_db,
+    add_product,
     insert_price,
     get_all_products,
     get_last_price_entry,
     get_price_history,
 )
-from io import BytesIO
-import matplotlib.pyplot as plt
-from datetime import datetime
 
-# Flask kısmı → sahte port için
-import threading
-from flask import Flask
+# ─────────── Flask ───────────
+flask_app = Flask(__name__)
 
-# Telegram bot token
+@flask_app.route('/')
+def index():
+    return "Bot çalışıyor."
+
+def run_flask():
+    flask_app.run(host="0.0.0.0", port=10000)
+
+# ─────────── Komutlar ───────────
 TOKEN = "7989116004:AAFFiYWlQHPOoihaD8PpVBKi_98Buu-utwI"  
-
-# ─────── Komutlar ───────
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("👋 Merhaba! Trendyol ürünlerini takip etmek için /yardim yaz.")
@@ -109,9 +119,8 @@ async def grafik(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text(f"❌ Grafik oluşturulamadı: {str(e)}")
 
-# ─────── Uygulama Başlatıcı ───────
-
-def run_bot():
+# ─────────── Ana Bot Çalıştırıcı ───────────
+async def run_bot():
     init_db()
     app = ApplicationBuilder().token(TOKEN).build()
 
@@ -123,34 +132,17 @@ def run_bot():
 
     print("🚀 Telegram komut sistemi başlatıldı.")
 
-    async def startup():
-        await app.bot.set_my_commands([
-            BotCommand("start", "Botu başlat"),
-            BotCommand("yardim", "Komut listesini göster"),
-            BotCommand("ekle", "Ürün ekle"),
-            BotCommand("fiyatlar", "Ürünleri listele"),
-            BotCommand("grafik", "Fiyat grafiği gönder")
-        ])
-        await app.run_polling()
+    await app.bot.set_my_commands([
+        BotCommand("start", "Botu başlat"),
+        BotCommand("yardim", "Komut listesini göster"),
+        BotCommand("ekle", "Ürün ekle"),
+        BotCommand("fiyatlar", "Ürünleri listele"),
+        BotCommand("grafik", "Fiyat grafiği gönder")
+    ])
 
-    import asyncio
-    loop = asyncio.get_event_loop()
-    loop.create_task(startup())
+    await app.run_polling()
 
-
-# ─────── Flask (sahte port açıcı) ───────
-
-flask_app = Flask(__name__)
-
-@flask_app.route('/')
-def index():
-    return "Bot çalışıyor."
-
-def run_flask():
-    flask_app.run(host="0.0.0.0", port=10000)
-
-# ─────── Ana Giriş ───────
-
+# ─────────── Main ───────────
 if __name__ == "__main__":
     threading.Thread(target=run_flask).start()
-    run_bot()
+    asyncio.run(run_bot())
