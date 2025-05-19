@@ -31,7 +31,8 @@ def index():
     return "✅ Bot aktif. Render port görüyor."
 
 def run_flask():
-    flask_app.run(host="0.0.0.0", port=10000)
+    port = int(os.environ.get("PORT", 10000))
+    flask_app.run(host="0.0.0.0", port=port)
 
 # === Telegram Bot ===
 TOKEN = os.getenv("TOKEN")  # Environment variable olarak ayarlanmalı!
