@@ -27,15 +27,15 @@ TOKEN = "7989116004:AAFFiYWlQHPOoihaD8PpVBKi_98Buu-utwI"
 # ─────── Komutlar ───────
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("👋 Merhaba! Trendyol ürünlerini takip etmek için /yardım yaz.")
+    await update.message.reply_text("👋 Merhaba! Trendyol ürünlerini takip etmek için /yardim yaz.")
 
-async def yardım(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def yardim(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = (
         "📋 *Komutlar:*\n"
         "/ekle <url> - Yeni ürün ekle\n"
         "/fiyatlar - Tüm ürünleri listele\n"
         "/grafik <id> - Fiyat grafiğini gönderir\n"
-        "/yardım - Yardım menüsü"
+        "/yardim - Yardım menüsü"
     )
     await update.message.reply_markdown(msg)
 
@@ -116,7 +116,7 @@ def run_bot():
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("yardım", yardım))
+    app.add_handler(CommandHandler("yardim", yardim))
     app.add_handler(CommandHandler("ekle", ekle))
     app.add_handler(CommandHandler("fiyatlar", fiyatlar))
     app.add_handler(CommandHandler("grafik", grafik))
@@ -126,7 +126,7 @@ def run_bot():
     async def set_commands():
         await app.bot.set_my_commands([
             BotCommand("start", "Botu başlat"),
-            BotCommand("yardım", "Komut listesini göster"),
+            BotCommand("yardim", "Komut listesini göster"),
             BotCommand("ekle", "Ürün ekle"),
             BotCommand("fiyatlar", "Ürünleri listele"),
             BotCommand("grafik", "Fiyat grafiği göster")
