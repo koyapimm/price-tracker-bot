@@ -62,13 +62,14 @@ async def grafik(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🧪 Grafik özelliği henüz eklenmedi.")
 
 async def run_bot():
-    print("⚙️ Bot başlatılıyor...")
-    init_db()
+    print("⚙️ run_bot fonksiyonu başlatıldı.")
+    print(f"🔑 TOKEN (ilk 10 karakter): {TOKEN[:10] if TOKEN else 'YOK'}")
 
     if not TOKEN:
         print("❌ [HATA] TOKEN environment değişkeni alınamadı!")
         return
 
+    init_db()
     try:
         app = ApplicationBuilder().token(TOKEN).build()
         app.add_handler(CommandHandler("start", start))
@@ -99,8 +100,11 @@ async def run_bot():
 if __name__ == "__main__":
     print("🔥 Başlatılıyor...")
     Thread(target=run_flask).start()
+
     try:
         asyncio.run(run_bot())
     except Exception as e:
-        print(f"[BOT HATASI]: {e}")
-        print("❌ Bot başlatılamadı.")
+        import traceback
+        print("❌ Bot başlatılamadı!")
+        traceback.print_exc()
+        print(f"[EXCEPTION]: {e}")
