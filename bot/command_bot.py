@@ -62,6 +62,10 @@ async def grafik(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🧪 Grafik özelliği henüz eklenmedi.")
 
 async def run_bot():
+    print(f"📦 Yüklenen token: {TOKEN}")
+    if not TOKEN:
+        print("❌ [HATA] TOKEN environment değişkeni alınamadı!")
+        return
     print("⚙️ Bot başlatılıyor...")
     init_db()
 
