@@ -124,6 +124,7 @@ async def grafik(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Telegram bot thread'inde çalışacak
 def run_bot():
     async def main():
+        print("⚙️ main() başladı")
         init_db()
         app = ApplicationBuilder().token(TOKEN).build()
 
@@ -148,9 +149,7 @@ def run_bot():
         print("✅ Bot başlatıldı.")
         await asyncio.Event().wait()
 
-    asyncio.run(main())
-
-# Ana giriş
-if __name__ == "__main__":
-    threading.Thread(target=run_bot).start()
-    run_flask()
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        print(f"[run_bot HATASI]: {e}")
