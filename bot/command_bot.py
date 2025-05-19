@@ -143,7 +143,10 @@ def run_bot():
             BotCommand("grafik", "Fiyat grafiği gönder")
         ])
 
-        await app.run_polling()
+        await app.initialize()
+        await app.start()
+        print("✅ Bot başlatıldı.")
+        await asyncio.Event().wait()
 
     asyncio.run(main())
 
