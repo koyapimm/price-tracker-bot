@@ -116,7 +116,7 @@ def run_bot():
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("yardım", yardım))
+    app.add_handler(CommandHandler("yardim", yardim))
     app.add_handler(CommandHandler("ekle", ekle))
     app.add_handler(CommandHandler("fiyatlar", fiyatlar))
     app.add_handler(CommandHandler("grafik", grafik))
@@ -126,7 +126,7 @@ def run_bot():
     async def startup():
         await app.bot.set_my_commands([
             BotCommand("start", "Botu başlat"),
-            BotCommand("yardım", "Komut listesini göster"),
+            BotCommand("yardim", "Komut listesini göster"),
             BotCommand("ekle", "Ürün ekle"),
             BotCommand("fiyatlar", "Ürünleri listele"),
             BotCommand("grafik", "Fiyat grafiği gönder")
