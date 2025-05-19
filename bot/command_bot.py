@@ -145,4 +145,12 @@ async def run_bot():
 # ─────────── Main ───────────
 if __name__ == "__main__":
     threading.Thread(target=run_flask).start()
-    asyncio.run(run_bot())
+
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    loop.create_task(run_bot())
+    loop.run_forever()
